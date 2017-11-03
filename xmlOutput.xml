@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet href="CoreNLP-to-HTML.xsl" type="text/xsl"?>
+<root>
+  <document>
+    <sentences>
+      <sentence id="1">
+        <tokens>
+          <token id="1">
+            <word>which</word>
+            <lemma>which</lemma>
+            <CharacterOffsetBegin>0</CharacterOffsetBegin>
+            <CharacterOffsetEnd>5</CharacterOffsetEnd>
+            <POS>WDT</POS>
+            <NER>O</NER>
+          </token>
+          <token id="2">
+            <word>birds</word>
+            <lemma>bird</lemma>
+            <CharacterOffsetBegin>6</CharacterOffsetBegin>
+            <CharacterOffsetEnd>11</CharacterOffsetEnd>
+            <POS>NNS</POS>
+            <NER>O</NER>
+          </token>
+          <token id="3">
+            <word>live</word>
+            <lemma>live</lemma>
+            <CharacterOffsetBegin>12</CharacterOffsetBegin>
+            <CharacterOffsetEnd>16</CharacterOffsetEnd>
+            <POS>VBP</POS>
+            <NER>O</NER>
+          </token>
+          <token id="4">
+            <word>in</word>
+            <lemma>in</lemma>
+            <CharacterOffsetBegin>17</CharacterOffsetBegin>
+            <CharacterOffsetEnd>19</CharacterOffsetEnd>
+            <POS>IN</POS>
+            <NER>O</NER>
+          </token>
+          <token id="5">
+            <word>tropical</word>
+            <lemma>tropical</lemma>
+            <CharacterOffsetBegin>20</CharacterOffsetBegin>
+            <CharacterOffsetEnd>28</CharacterOffsetEnd>
+            <POS>JJ</POS>
+            <NER>O</NER>
+          </token>
+          <token id="6">
+            <word>areas</word>
+            <lemma>area</lemma>
+            <CharacterOffsetBegin>29</CharacterOffsetBegin>
+            <CharacterOffsetEnd>34</CharacterOffsetEnd>
+            <POS>NNS</POS>
+            <NER>O</NER>
+          </token>
+        </tokens>
+        <parse>(ROOT
+          (SBAR
+          (WHNP (WDT which))
+          (S
+          (NP (NNS birds))
+          (VP (VBP live)
+          (PP (IN in)
+          (NP (JJ tropical) (NNS areas)))))))
+          
+          </parse>
+        <dependencies type="basic-dependencies">
+          <dep type="root">
+            <governor idx="0">ROOT</governor>
+            <dependent idx="3">live</dependent>
+          </dep>
+          <dep type="dobj">
+            <governor idx="3">live</governor>
+            <dependent idx="1">which</dependent>
+          </dep>
+          <dep type="nsubj">
+            <governor idx="3">live</governor>
+            <dependent idx="2">birds</dependent>
+          </dep>
+          <dep type="case">
+            <governor idx="6">areas</governor>
+            <dependent idx="4">in</dependent>
+          </dep>
+          <dep type="amod">
+            <governor idx="6">areas</governor>
+            <dependent idx="5">tropical</dependent>
+          </dep>
+          <dep type="nmod">
+            <governor idx="3">live</governor>
+            <dependent idx="6">areas</dependent>
+          </dep>
+        </dependencies>
+        <dependencies type="collapsed-dependencies">
+          <dep type="root">
+            <governor idx="0">ROOT</governor>
+            <dependent idx="3">live</dependent>
+          </dep>
+          <dep type="dobj">
+            <governor idx="3">live</governor>
+            <dependent idx="1">which</dependent>
+          </dep>
+          <dep type="nsubj">
+            <governor idx="3">live</governor>
+            <dependent idx="2">birds</dependent>
+          </dep>
+          <dep type="case">
+            <governor idx="6">areas</governor>
+            <dependent idx="4">in</dependent>
+          </dep>
+          <dep type="amod">
+            <governor idx="6">areas</governor>
+            <dependent idx="5">tropical</dependent>
+          </dep>
+          <dep type="nmod:in">
+            <governor idx="3">live</governor>
+            <dependent idx="6">areas</dependent>
+          </dep>
+        </dependencies>
+        <dependencies type="collapsed-ccprocessed-dependencies">
+          <dep type="root">
+            <governor idx="0">ROOT</governor>
+            <dependent idx="3">live</dependent>
+          </dep>
+          <dep type="dobj">
+            <governor idx="3">live</governor>
+            <dependent idx="1">which</dependent>
+          </dep>
+          <dep type="nsubj">
+            <governor idx="3">live</governor>
+            <dependent idx="2">birds</dependent>
+          </dep>
+          <dep type="case">
+            <governor idx="6">areas</governor>
+            <dependent idx="4">in</dependent>
+          </dep>
+          <dep type="amod">
+            <governor idx="6">areas</governor>
+            <dependent idx="5">tropical</dependent>
+          </dep>
+          <dep type="nmod:in">
+            <governor idx="3">live</governor>
+            <dependent idx="6">areas</dependent>
+          </dep>
+        </dependencies>
+      </sentence>
+    </sentences>
+  </document>
+</root>
