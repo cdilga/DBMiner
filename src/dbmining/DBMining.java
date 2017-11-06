@@ -91,7 +91,7 @@ public class DBMining implements Runnable {
 
         //------------------------------------------------
         DBMining db = new DBMining();
-        int threads = 100;
+        int threads = 8;
         Thread[] t = new Thread[threads];
         for (int i = 0; i < threads; i++) {
             t[i] = new Thread(db);
@@ -122,7 +122,7 @@ public class DBMining implements Runnable {
                 } catch (Exception ex) {
                     System.out.println(ex.getStackTrace().toString());
                     System.out.println("Query was not valid. Using zero fitness instead!");
-                    System.in.read();
+                    //System.in.read();
                 }
 
                 DataOutputStream output = new DataOutputStream(mySocket.getOutputStream());
@@ -344,7 +344,7 @@ public class DBMining implements Runnable {
     //================================================================================================
     public static void loadNumberBatch() throws SQLException {
         System.out.println("Loading the numberbatch started!");
-        Statement stmt = OpenConnectionMYSQL("conceptnet2");
+        Statement stmt = OpenConnectionMYSQL("conceptnet");
         String sql = "select * from conceptnet.numberbatch;";
         ResultSet rs = stmt.executeQuery(sql);
         //**************************************
@@ -352,7 +352,7 @@ public class DBMining implements Runnable {
         while (rs.next()) {
             String[] vecs = rs.getString(2).split(" ");
             if (vecs.length != 300) {
-                System.out.println("Vecs less than 300, Vecs: " + vecs.length);
+                System.out.println("Vecs less than 300, Vecs: " + vecs.length + " for " + rs.getString(1));
                 continue;
             }
             Float[] numVecs = new Float[vecs.length];
