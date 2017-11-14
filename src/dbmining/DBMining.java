@@ -1,14 +1,7 @@
 package dbmining;
 
-import java.io.BufferedWriter;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
-import edu.stanford.nlp.hcoref.CorefCoreAnnotations;
 import edu.stanford.nlp.hcoref.CorefCoreAnnotations.CorefChainAnnotation;
 import edu.stanford.nlp.hcoref.data.CorefChain;
-import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.ling.CoreAnnotations.NamedEntityTagAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations.PartOfSpeechAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations.SentencesAnnotation;
@@ -20,22 +13,13 @@ import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.semgraph.SemanticGraph;
 import edu.stanford.nlp.semgraph.SemanticGraphCoreAnnotations.CollapsedCCProcessedDependenciesAnnotation;
 import edu.stanford.nlp.trees.Tree;
-import edu.stanford.nlp.trees.TreeCoreAnnotations;
 import edu.stanford.nlp.trees.TreeCoreAnnotations.TreeAnnotation;
-import edu.stanford.nlp.util.CacheMap;
 import edu.stanford.nlp.util.CoreMap;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.io.Reader;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.sql.Connection;
@@ -59,14 +43,39 @@ public class DBMining implements Runnable {
 
     public ArrayList<String> rows = new ArrayList<String>();
     public String query;
-    public ArrayList<String> Query;
+    public ArrayList<String> QueryWords;
 
     // "How many discoveries Martin has made after 1990?";
     public static String question;
-    public static ArrayList<String> Question;
+    public static ArrayList<String> QuestionWords;
+    public static ConcurrentHashMap<StringKey, Double> SimiliartiesHashMap = new ConcurrentHashMap<StringKey, Double>();
     public static ConcurrentHashMap<String, Float[]> vectors = new ConcurrentHashMap<String, Float[]>();
-
     public Statement stmt;
+
+    public class StringKey {
+
+        public String str1;
+        public String str2;
+
+        public StringKey(String s1, String s2) {
+            str1 = s1;
+            str2 = s2;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj != null && obj instanceof StringKey) {
+                StringKey s = (StringKey) obj;
+                return str1.equals(s.str1) && str2.equals(s.str2);
+            }
+            return false;
+        }
+
+        @Override
+        public int hashCode() {
+            return (str1 + str2).hashCode();
+        }
+    }
 
     //Input Question.
     public static void main(String[] args) throws SQLException {
@@ -78,7 +87,7 @@ public class DBMining implements Runnable {
         }
         try {
             loadNumberBatch();
-            Question = extractQuestionColumns();
+            QuestionWords = extractQuestionColumns();
         } catch (SQLException ex) {
             Logger.getLogger(DBMining.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -90,11 +99,12 @@ public class DBMining implements Runnable {
         }
 
         //------------------------------------------------
-        DBMining db = new DBMining();
         int threads = 8;
+        DBMining[] db = new DBMining[8];
         Thread[] t = new Thread[threads];
         for (int i = 0; i < threads; i++) {
-            t[i] = new Thread(db);
+            db[i] = new DBMining();
+            t[i] = new Thread(db[i]);
             t[i].start();
         }
         //------------------------------------------------
@@ -158,10 +168,10 @@ public class DBMining implements Runnable {
     }
 
     public double getFitness() throws SQLException {
-        Query = extractQueryColumns(query);
+        QueryWords = extractQueryColumns(query);
         System.out.println("---------------------------------------------------");
-        System.out.println("Query: " + Query);
-        System.out.println("Question: " + Question);
+        System.out.println("Query: " + QueryWords);
+        System.out.println("Question: " + QuestionWords);
         return Fitness(query, getColumnsRelevance());
     }
 
@@ -173,7 +183,7 @@ public class DBMining implements Runnable {
         }
         while (result.next()) {
             ArrayList<relevance> temp = new ArrayList<relevance>();
-            for (int i = 1; i <= Query.size(); i++) {
+            for (int i = 1; i <= QueryWords.size(); i++) {
                 relevance rel = new relevance();
                 rel.word = result.getString(i);
                 rel.value = cellRelevanceScore(result.getString(i));
@@ -192,10 +202,10 @@ public class DBMining implements Runnable {
 
     public double cellRelevanceScore(String cell) {
         DescriptiveStatistics temp = new DescriptiveStatistics();
-        for (int i = 0; i < Question.size(); i++) {
+        for (int i = 0; i < QuestionWords.size(); i++) {
             double sim = 0;
             try {
-                sim = cosineSimilarity(Question.get(i), cell);
+                sim = cosineSimilarity(QuestionWords.get(i), cell);
             } catch (Exception Ex) {
                 System.out.println("calculating sim failed.");
             }
@@ -206,19 +216,19 @@ public class DBMining implements Runnable {
 
     public ArrayList<relevance> getColumnsRelevance() throws SQLException {
         ArrayList<DescriptiveStatistics> desc = new ArrayList<DescriptiveStatistics>();
-        for (int j = 0; j < Query.size(); j++) {
+        for (int j = 0; j < QueryWords.size(); j++) {
             DescriptiveStatistics temp = new DescriptiveStatistics();
-            for (int i = 0; i < Question.size(); i++) {
-                double sim = cosineSimilarity(Question.get(i), Query.get(j));
+            for (int i = 0; i < QuestionWords.size(); i++) {
+                double sim = cosineSimilarity(QuestionWords.get(i), QueryWords.get(j));
                 //System.out.println(Question.get(i) + "," + Query.get(j) + " : " + sim);
                 temp.addValue(sim);
             }
             desc.add(temp);
         }
         ArrayList<relevance> str = new ArrayList<>();
-        for (int j = 0; j < Query.size(); j++) {
+        for (int j = 0; j < QueryWords.size(); j++) {
             relevance rel = new relevance();
-            rel.word = Query.get(j);
+            rel.word = QueryWords.get(j);
             rel.value = desc.get(j).getMean();
             str.add(rel);
         }
@@ -283,7 +293,7 @@ public class DBMining implements Runnable {
         return ResultsColumns;
     }
 
-    public ResultSet getResultSet(String query) throws SQLException {
+    public synchronized ResultSet getResultSet(String query) throws SQLException {
         return stmt.executeQuery(query);
     }
 
@@ -335,7 +345,7 @@ public class DBMining implements Runnable {
     public static Statement OpenConnectionMYSQL(String Dataset) throws SQLException {
         String url = "jdbc:mysql://localhost:3306/" + Dataset;
         String username = "root";
-        String password = "example";
+        String password = "farhad";
         Connection connection = DriverManager.getConnection(url, username, password);
         Statement stmt = connection.createStatement();
         return (Statement) stmt;
@@ -365,33 +375,37 @@ public class DBMining implements Runnable {
     }
 
     public double cosineSimilarity(String word1, String word2) {
-        Float[] wordAvec = null;
-        Float[] wordBvec = null;
-        try {
-            wordAvec = getVector(word1.toLowerCase());
-            wordBvec = getVector(word2.toLowerCase());
-        } catch (Exception Ex) {
-            System.out.println("Failed getting vector: " + Ex.getMessage());
-            return 0;
-        }
-        if (wordAvec == null || wordBvec == null) {
-           //System.out.println("The word " + word1 + " or " + word2 + " is not in conceptnet.");
-            return 0;
-        }
-     
-        double dotProduct = 0.0;
-        double normA = 0.0;
-        double normB = 0.0;
-        for (int i = 0; i < wordAvec.length; i++) {
-            dotProduct += wordAvec[i] * wordBvec[i];
-            //TODO Fix strings
-            normA += Math.pow(wordAvec[i], 2);
-            normB += Math.pow(wordBvec[i], 2);
-        }
-        double temp = dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+        StringKey key = new StringKey(word1, word2);
+        if (SimiliartiesHashMap.containsKey(key)) {
+            return SimiliartiesHashMap.get(key);
+        } else {
+            Float[] wordAvec = null;
+            Float[] wordBvec = null;
+            try {
+                wordAvec = getVector(word1.toLowerCase());
+                wordBvec = getVector(word2.toLowerCase());
+            } catch (Exception Ex) {
+                System.out.println("Failed getting vector: " + Ex.getMessage());
+                return 0;
+            }
+            if (wordAvec == null || wordBvec == null) {
+                //System.out.println("The word " + word1 + " or " + word2 + " is not in conceptnet.");
+                return 0;
+            }
 
-        //return ((double) Math.acos(temp) / Math.PI) * 100;
-        return temp;
+            double dotProduct = 0.0;
+            double normA = 0.0;
+            double normB = 0.0;
+            for (int i = 0; i < wordAvec.length; i++) {
+                dotProduct += wordAvec[i] * wordBvec[i];
+                //TODO Fix strings
+                normA += Math.pow(wordAvec[i], 2);
+                normB += Math.pow(wordBvec[i], 2);
+            }
+            double temp = dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+            SimiliartiesHashMap.put(key, temp);
+            return temp;
+        }
     }
 
     public double eulideanSimilarity(String word1, String word2) {
@@ -408,7 +422,7 @@ public class DBMining implements Runnable {
             System.out.println("The word " + word1 + " or " + word2 + " is not in conceptnet.");
             return 0;
         }
-        
+
         double diff_square_sum = 0.0;
         for (int i = 0; i < wordAvec.length; i++) {
             diff_square_sum += (wordAvec[i] - wordBvec[i]) * (wordAvec[i] - wordBvec[i]);
