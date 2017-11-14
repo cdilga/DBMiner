@@ -73,7 +73,7 @@ public class DBMining implements Runnable {
         if (args.length == 1) {
             question = args[0];
         } else {
-            System.out.println("Some inputs is missing!");
+            System.out.println("Some inputs are missing!");
             return;
         }
         try {
@@ -107,21 +107,21 @@ public class DBMining implements Runnable {
 
             while (true) {
                 Socket mySocket = MyService.accept();
-                System.out.println("Connected");
+                //System.out.println("Connected");
                 DataInputStream input = new DataInputStream(mySocket.getInputStream());
                 BufferedReader r = new BufferedReader(new InputStreamReader(input));
                 String st = r.readLine();
-                System.out.println(st);
+                //System.out.println(st);
                 if (st.equals("DIE")) {
                     break;
                 }
                 this.setQuery(st);
-                String response = "0\n";
+                String response = "-1\n";
                 try {
                     response = Double.toString(this.getFitness()) + "\n";
-                } catch (Exception ex) {
+                } catch (SQLException ex) {
                     System.out.println(ex.getStackTrace().toString());
-                    System.out.println("Query was not valid. Using zero fitness instead!");
+                    System.out.println("Query was not valid. Using zero fitness instead! : " + st);
                     //System.in.read();
                 }
 
@@ -130,7 +130,7 @@ public class DBMining implements Runnable {
                 //output.writeUTF("hello");
                 output.flush();
                 output.close();
-                System.out.println("Fitness : " + response);
+                //System.out.println("Fitness : " + response);
                 mySocket.close();
             }
         } catch (IOException ex) {
@@ -159,9 +159,9 @@ public class DBMining implements Runnable {
 
     public double getFitness() throws SQLException {
         Query = extractQueryColumns(query);
-        System.out.println("---------------------------------------------------");
-        System.out.println("Query: " + Query);
-        System.out.println("Question: " + Question);
+        //System.out.println("---------------------------------------------------");
+        //System.out.println("Query: " + Query);
+        //System.out.println("Question: " + Question);
         return Fitness(query, getColumnsRelevance());
     }
 
@@ -227,6 +227,7 @@ public class DBMining implements Runnable {
     }
 
     //================================================================================================
+    //TODO Find what this does
     public static ArrayList<String> extractQuestionColumns() {
         HashMap<String, String> QuestionColumns;
         ArrayList<String> QuestionColumnsList = new ArrayList<>();
@@ -272,19 +273,59 @@ public class DBMining implements Runnable {
     }
 
     public ArrayList<String> extractQueryColumns(String query) throws SQLException {
-        ResultSet result = getResultSet(query);
-        System.out.println("Result set ready.");
+        ResultSet result;
+        try
+        {
+            result = getResultSet(query);
+        } catch(SQLException ex) {
+            int i = 0;
+            throw ex;
+            
+            
+        }
+        try {
+            System.out.println("Result set ready.");
         ArrayList<String> ResultsColumns = new ArrayList<>();
-        ResultSetMetaData rsmd = result.getMetaData();
+        ResultSetMetaData rsmd = null;
+        try{
+            rsmd = result.getMetaData();
+        }
+        catch (SQLException ex) {
+            int asdfklj = 0;
+            throw ex;
+        }
+        
         for (int i = 1; i <= rsmd.getColumnCount(); i++) {
-            String name = rsmd.getColumnName(i);
-            ResultsColumns.add(name);
+            String name = null;
+            try {
+                name = rsmd.getColumnName(i);
+            }
+            catch (SQLException ex) {
+                int j = 0;
+                throw ex;
+            }
+             ResultsColumns.add(name);
+           
         }
         return ResultsColumns;
+        }
+        catch (SQLException ex) {
+            int i = 0;
+            throw ex;
+        }
+        
     }
 
     public ResultSet getResultSet(String query) throws SQLException {
-        return stmt.executeQuery(query);
+        try
+        {
+            return stmt.executeQuery(query);
+        }
+        catch (SQLException ex) {
+            int i = 0;
+            throw ex;
+
+        }
     }
 
     public static HashMap<String, String> parseText(String text) {
