@@ -1,7 +1,10 @@
 package dbmining;
 
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 import edu.stanford.nlp.hcoref.CorefCoreAnnotations;
 import edu.stanford.nlp.ling.CoreAnnotations;
+import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.trees.Tree;
@@ -18,8 +21,11 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
@@ -42,9 +48,10 @@ public class test {
     public static BufferedWriter writerout;
 
     public static void main(String[] args) throws FileNotFoundException, IOException, SQLException, Exception {
-        writerout = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("output.xml"), "utf-8"));
-        (new test()).SyntacticTree();
+        //writerout = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("output.xml"), "utf-8"));
+        //(new test()).SyntacticTree();
         //save(OpenConnectionMYSQL());
+        System.out.println(getQueryCoverage("Select A,B from test where E <= 25;", "Select A,B,C from test where E <= 20;"));
     }
 
     public void SyntacticTree() throws IOException {
@@ -242,5 +249,72 @@ public class test {
             return clean_string;
         }
         return "";
+    }
+
+    public static Statement OpenConnectionMYSQL(String Dataset) throws SQLException {
+        String url = "jdbc:mysql://localhost:3306/" + Dataset;
+        String username = "root";
+        String password = "farhad";
+        Connection connection = DriverManager.getConnection(url, username, password);
+        Statement stmt = connection.createStatement();
+        return (Statement) stmt;
+    }
+
+    public static double getQueryCoverage(String groundTruthQuery, String query) throws SQLException {
+        //=========================================================================================
+        Table<String, String, String> ALL = HashBasedTable.create();
+        Statement stmt = OpenConnectionMYSQL("species");
+        ResultSet result = stmt.executeQuery("SELECT * FROM test;");
+        ResultSetMetaData rsmd = result.getMetaData();
+        while (result.next()) {
+            String ID = result.getString(1);
+            for (int i = 1; i <= rsmd.getColumnCount(); i++) {
+                String name = rsmd.getColumnName(i);
+                ALL.put(ID, name, result.getString(name));
+            }
+        }
+        //=========================================================================================
+        Table<String, String, String> GT = HashBasedTable.create();
+        result = stmt.executeQuery(groundTruthQuery);
+        rsmd = result.getMetaData();
+        while (result.next()) {
+            String ID = result.getString(1);
+            for (int i = 1; i <= rsmd.getColumnCount(); i++) {
+                String name = rsmd.getColumnName(i);
+                GT.put(ID, name, result.getString(name));
+            }
+        }
+        //=========================================================================================
+        Table<String, String, String> Q = HashBasedTable.create();
+        result = stmt.executeQuery(query);
+        rsmd = result.getMetaData();
+        while (result.next()) {
+            String ID = result.getString(1);
+            for (int i = 1; i <= rsmd.getColumnCount(); i++) {
+                String name = rsmd.getColumnName(i);
+                Q.put(ID, name, result.getString(name));
+            }
+        }
+        //=========================================================================================
+        Iterator it = ALL.cellSet().iterator();
+        double FP = 0;
+        double FN = 0;
+        double N = 0;
+        while (it.hasNext()) {
+            Table.Cell<String, String, String> c = (Table.Cell) it.next();
+            String rowKey = c.getRowKey();
+            String colKey = c.getColumnKey();
+            if (GT.contains(rowKey, colKey) && Q.contains(rowKey, colKey)) {
+            } else if (!GT.contains(rowKey, colKey) && Q.contains(rowKey, colKey)) {
+                FP++;
+            } else if (GT.contains(rowKey, colKey) && !Q.contains(rowKey, colKey)) {
+                FN++;
+            } else if (!GT.contains(rowKey, colKey) && !Q.contains(rowKey, colKey)) {
+            }
+            N++;
+        }
+        //=========================================================================================
+        System.out.println(FP + " " + FN + " " + N);
+        return 1 - ((double) FP / N) - (2 * (double) FN / N);
     }
 }
